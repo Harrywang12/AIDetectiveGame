@@ -27,7 +27,7 @@ def signup_sql(username, password):
         cursor.execute("INSERT INTO users (username, password, progress) VALUES (?, ?, ?)", 
                        (username, hashed_password, 0))  
         conn.commit()
-        return True
+        return True, "Account created successfully!"
     except sqlite3.IntegrityError:
         return False, "Username already exists!"
 
