@@ -16,16 +16,14 @@ CREATE TABLE IF NOT EXISTS users (
 """)
 conn.commit()
 
-# Hashing Passwords
 def hash_password(password):
     return sha256(password.encode()).hexdigest()
 
-# Database Functions
 def signup_sql(username, password):
     hashed_password = hash_password(password)
     try:
         cursor.execute("INSERT INTO users (username, password, progress) VALUES (?, ?, ?)", 
-                       (username, hashed_password, 0))  
+                       (username, hashed_password, 0)) 
         conn.commit()
         return True, "Account created successfully!"
     except sqlite3.IntegrityError:
