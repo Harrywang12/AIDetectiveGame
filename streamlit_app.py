@@ -27,7 +27,7 @@ def signup_sql(username, password):
         cursor.execute("INSERT INTO users (username, password, progress) VALUES (?, ?, ?)", 
                        (username, hashed_password, 0))  
         conn.commit()
-        return True, "Account created successfully!"
+        return True
     except sqlite3.IntegrityError:
         return False, "Username already exists!"
 
@@ -168,7 +168,7 @@ elif menu == "Game":
                 st.write(f"- **{suspect}:** {details}")
             st.write("**Clues:**", ". ".join(story["clues"]))
 
-            guess = st.text_input("Who do you think the culprit is?", value=st.session_state.input_value, key="guess")
+            guess = st.text_input("Who do you think the culprit is?", key="guess")
             if st.button("Submit Guess"):
                 if guess.lower() == st.session_state.culprit.lower():
                     st.success(f"Correct! The culprit was {st.session_state.culprit}.")
