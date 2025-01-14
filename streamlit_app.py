@@ -165,7 +165,7 @@ elif menu == "Game":
         st.write(f"Current Level: {progress + 1}")
 
         if st.session_state.story is None:
-            if st.button("Start Game"):
+            if st.button("Solve Mystery"):
                 story_json = generate_story(progress + 1)
                 story = json.loads(story_json)  
                 st.session_state.story = story
@@ -222,15 +222,16 @@ elif menu == "Game":
                 st.subheader("Who is the culprit?")
                 guess = st.selectbox("Accuse a suspect:", story['suspects'])
                 if st.button(button_text):
+                    button_text = "Play Again"
                     if guess.lower() == story["culprit"].lower():
                         st.success(f"Correct! The culprit was {story['culprit']}.")
                         st.write(f"Explanation: {story['explanation']}")
                         save_progress_sql(st.session_state.username, progress + 1)
                         st.session_state.story = None
                         st.session_state.current_stage = "start"  
-                        button_text = "Play Again"
-
+                        
                     else:
-                        st.error("Incorrect guess! You failed!")
+                        st.error(f"Incorrect! You failed! The culprit was {story['culprit']}.")
+                        st.write(f"Explanation: {story['explanation']}")
                         st.session_state.story = None
                         st.session_state.current_stage = "start"  
