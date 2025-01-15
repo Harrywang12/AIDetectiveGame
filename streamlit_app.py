@@ -3,6 +3,7 @@ import sqlite3
 import json
 from hashlib import sha256
 from groq import Groq
+import time
 
 conn = sqlite3.connect("users.db", check_same_thread=False)
 cursor = conn.cursor()
@@ -183,6 +184,7 @@ elif menu == "Game":
                     st.session_state.current_stage = "clue_hunt"
                 if st.button("Talk to suspects"):
                     st.session_state.current_stage = "interview"
+                st.rerun()
 
             elif st.session_state.current_stage == "clue_hunt":
                 st.subheader("Looking for clues...")
@@ -200,8 +202,11 @@ elif menu == "Game":
                 st.write("What will you do now?")
                 if st.button("Talk to suspects"):
                     st.session_state.current_stage = "interview"
+                    st.rerun()
                 if st.button("Guess the culprit"):
                     st.session_state.current_stage = "guess"
+                    st.rerun()
+
 
             elif st.session_state.current_stage == "interview":
                 st.subheader("Talking to suspects...")
@@ -214,24 +219,37 @@ elif menu == "Game":
                 st.write("What will you do now?")       
                 if st.button("Look for clues"):
                     st.session_state.current_stage = "clue_hunt"
+                    st.rerun()
                 if st.button("Guess the culprit"):
                     st.session_state.current_stage = "guess"
+                    st.rerun()
+
                 
             elif st.session_state.current_stage == "guess":
                 button_text = "Submit Guess"
                 st.subheader("Who is the culprit?")
                 guess = st.selectbox("Accuse a suspect:", story['suspects'])
-                if st.button(button_text):
-                    button_text = "Play Again"
+                if 'run_button' in st.session_state and st.session_state.run_button == True:
+                    st.session_state.running = True
+                else:
+                    st.session_state.running = False
+
+                st.session_state.playing = True
+                if st.button(button_text, disabled=st.session_state.running, key='run_button'):  
+                    st.session_state.running = False
+                    st.session_state.playing = False
                     if guess.lower() == story["culprit"].lower():
                         st.success(f"Correct! The culprit was {story['culprit']}.")
                         st.write(f"Explanation: {story['explanation']}")
-                        save_progress_sql(st.session_state.username, progress + 1)
-                        st.session_state.story = None
-                        st.session_state.current_stage = "start"  
+                        save_progress_sql(st.session_state.username, progress + 1) 
                         
                     else:
                         st.error(f"Incorrect! You failed! The culprit was {story['culprit']}.")
                         st.write(f"Explanation: {story['explanation']}")
-                        st.session_state.story = None
-                        st.session_state.current_stage = "start"  
+
+                if st.button("Play Again", disabled = st.session_state.playing, key='play_again'):
+                    st.session_state.running = False
+                    st.session_state.playing = True
+                    st.session_state.current_stage = "start"
+                    st.session_state.story = None
+                    st.rerun()
