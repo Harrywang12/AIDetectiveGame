@@ -4,6 +4,8 @@ import json
 from hashlib import sha256
 from groq import Groq
 import time
+import asyncio
+
 
 conn = sqlite3.connect("users.db", check_same_thread=False)
 cursor = conn.cursor()
@@ -48,8 +50,15 @@ def load_progress_sql(username):
     result = cursor.fetchone()
     return result[0] if result else None
 
+async def countdown_timer(seconds):
+    while seconds > 0:
+        st.session_state.timer_running = f"Time Remaining: {seconds} seconds"
+        seconds -= 1
+        await asyncio.sleep(1)
+    st.session_state.timer_running = "Time's up!"
+
 client = Groq(api_key=st.secrets["groq_api_key"])
-def generate_story(level):
+def generate_story(level, difflevel):
     num_clues = max(3 - (level // 5), 1) 
     num_red_herrings = 2 + (level // 5) 
 
@@ -64,6 +73,7 @@ def generate_story(level):
         f"- {num_red_herrings} red herrings.\n"
         f"- One culprit. \n"
         f"- An explanation of why the culprit committed the crime. \n"
+        f"- Make it a {difflevel}. \n"
         "Provide the output in JSON format: \n"
         "{\n"
         "    \"setting\": \"\",\n"
@@ -106,39 +116,50 @@ def generate_story(level):
 
 st.title("ClueQuest AI")
 st.sidebar.header("Navigation")
-menu = st.sidebar.selectbox("Menu", [ "Game","Login", "Signup"])
+menu = st.sidebar.selectbox("Menu", [ "Login", "Signup", "Level Mode"])
 
 if "username" not in st.session_state:
     st.session_state.username = None
 if "story" not in st.session_state:
     st.session_state.story = None
     st.session_state.current_stage = "start"
+if "timer" not in st.session_state:
+    st.session_state.timer = None
+
 
 if menu == "Signup":
-    st.subheader("Sign Up")
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
-    if st.button("Sign Up"):
-        success, message = signup_sql(username, password)
-        if success:
-            st.success(message)
-        else:
-            st.error(message)
+    if not st.session_state.username:
+        st.subheader("Welcome to ClueQuest AI!")
+        st.subheader("Sign Up")
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        if st.button("Sign Up"):
+            success, message = signup_sql(username, password)
+            if success:
+                st.success(message)
+            else:
+                st.error(message)
+    else:
+        st.success(f"Logged in as {st.session_state.username}")
 
 elif menu == "Login":
-    st.subheader("Login")
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
-    if st.button("Login"):
-        success, message = login_sql(username, password)
-        if success:
-            st.session_state.username = username
-            st.success(message)
-            st.sidebar.success(f"Logged in as {username}")
-        else:
-            st.error(message)
+    if not st.session_state.username:
+        st.subheader("Welcome to ClueQuest AI!")
+        st.subheader("Login")
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        if st.button("Login"):
+            success, message = login_sql(username, password)
+            if success:
+                st.session_state.username = username
+                st.success(message)
+                st.sidebar.success(f"Logged in as {username}")
+            else:
+                st.error(message)
+    else:
+        st.success(f"Logged in as {st.session_state.username}")
 
-elif menu == "Game":
+elif menu == "Level Mode":
     bg_image = """
     <style>
     [data-testid="stAppViewContainer"] {
@@ -161,13 +182,23 @@ elif menu == "Game":
         st.text(" Welcome to ClueQuest AI!")
         st.warning("You must log in to play the game.")
     else:
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            if st.button("Log Out"):
+                st.session_state.username = None
+                st.session_state.running = False
+                st.session_state.playing = True
+                st.session_state.current_stage = "start"
+                st.session_state.story = None
+                st.rerun()
+
         st.subheader(f"Welcome, Detective {st.session_state.username}!")
         progress = load_progress_sql(st.session_state.username) or 0
         st.write(f"Current Level: {progress + 1}")
 
         if st.session_state.story is None:
             if st.button("Solve Mystery"):
-                story_json = generate_story(progress + 1)
+                story_json = generate_story(progress + 1, "Medium")
                 story = json.loads(story_json)  
                 st.session_state.story = story
                 st.session_state.culprit = story["culprit"]
@@ -229,14 +260,12 @@ elif menu == "Game":
                 button_text = "Submit Guess"
                 st.subheader("Who is the culprit?")
                 guess = st.selectbox("Accuse a suspect:", story['suspects'])
-                if 'run_button' in st.session_state and st.session_state.run_button == True:
-                    st.session_state.running = True
-                else:
-                    st.session_state.running = False
-
-                st.session_state.playing = True
-                if st.button(button_text, disabled=st.session_state.running, key='run_button'):  
-                    st.session_state.running = False
+                if "guessing" not in st.session_state:
+                    st.session_state.guessing = False
+                if "playing" not in st.session_state:
+                    st.session_state.playing = True
+                if st.button(button_text, disabled=st.session_state.guessing, key='guess'):  
+                    st.session_state.guessing = False
                     st.session_state.playing = False
                     if guess.lower() == story["culprit"].lower():
                         st.success(f"Correct! The culprit was {story['culprit']}.")
@@ -253,3 +282,4 @@ elif menu == "Game":
                     st.session_state.current_stage = "start"
                     st.session_state.story = None
                     st.rerun()
+               
