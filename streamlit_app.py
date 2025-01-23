@@ -3,8 +3,6 @@ import sqlite3
 import json
 from hashlib import sha256
 from groq import Groq
-import time
-import asyncio
 
 
 conn = sqlite3.connect("users.db", check_same_thread=False)
@@ -49,13 +47,6 @@ def load_progress_sql(username):
     cursor.execute("SELECT progress FROM users WHERE username = ?", (username,))
     result = cursor.fetchone()
     return result[0] if result else None
-
-async def countdown_timer(seconds):
-    while seconds > 0:
-        st.session_state.timer_running = f"Time Remaining: {seconds} seconds"
-        seconds -= 1
-        await asyncio.sleep(1)
-    st.session_state.timer_running = "Time's up!"
 
 client = Groq(api_key=st.secrets["groq_api_key"])
 def generate_story(level, difflevel):
@@ -123,9 +114,6 @@ if "username" not in st.session_state:
 if "story" not in st.session_state:
     st.session_state.story = None
     st.session_state.current_stage = "start"
-if "timer" not in st.session_state:
-    st.session_state.timer = None
-
 
 if menu == "Signup":
     if not st.session_state.username:
