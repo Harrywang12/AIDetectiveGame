@@ -267,6 +267,7 @@ elif menu == "Level Mode":
                 if st.button("Play Again", disabled = st.session_state.playing, key='play_again'):
                     st.session_state.running = False
                     st.session_state.playing = True
+                    st.session_state.guessing = False
                     st.session_state.current_stage = "start"
                     st.session_state.story = None
                     st.rerun()
