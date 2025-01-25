@@ -253,7 +253,7 @@ elif menu == "Level Mode":
                 if "playing" not in st.session_state:
                     st.session_state.playing = True
                 if st.button(button_text, disabled=st.session_state.guessing, key='guess'):  
-                    st.session_state.guessing = False
+                    st.session_state.guessing = True
                     st.session_state.playing = False
                     if guess.lower() == story["culprit"].lower():
                         st.success(f"Correct! The culprit was {story['culprit']}.")
