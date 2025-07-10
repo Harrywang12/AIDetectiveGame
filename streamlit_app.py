@@ -182,7 +182,7 @@ elif menu == "Level Mode":
 
         st.subheader(f"Welcome, Detective {st.session_state.username}!")
         progress = load_progress_sql(st.session_state.username) or 0
-        st.write(f"Current Level: {progress + 1}")
+        st.write(f"white:[Current Level: {progress + 1}]")
 
         if st.session_state.story is None:
             if st.button("Solve Mystery"):
@@ -197,8 +197,8 @@ elif menu == "Level Mode":
             if st.session_state.current_stage == "start":
                 st.subheader("You arrive at the scene of the crime.")
                 setting = story['setting'].lower()
-                st.write(f"You are at {setting}. {story['description']} The victim was {story['victim']}")
-                st.write("What would you like to do?")
+                st.write(f"white:[You are at {setting}. {story['description']} The victim was {story['victim']}]")
+                st.write("white:[What would you like to do?]")
                 if st.button("Look for clues"):
                     st.session_state.current_stage = "clue_hunt"
                 if st.button("Talk to suspects"):
@@ -213,12 +213,12 @@ elif menu == "Level Mode":
                 selected_clue_label = st.selectbox("Select a clue to investigate:", clue_labels + herring_labels)
                 if int(selected_clue_label.split()[1]) <= len(story["clues"]):
                     selected_clue_index = clue_labels.index(selected_clue_label)
-                    st.write(f"**Revealed Clue:** {story['clues'][selected_clue_index]}") 
+                    st.write(f"white:[**Revealed Clue:** {story['clues'][selected_clue_index]}]") 
                 else:
                     selected_clue_index = herring_labels.index(selected_clue_label) - clue_length + 1
-                    st.write(f"**Revealed Clue:** {story['red_herrings'][selected_clue_index]}") 
+                    st.write(f"white:[**Revealed Clue:** {story['red_herrings'][selected_clue_index]}]") 
 
-                st.write("What will you do now?")
+                st.write("white:[What will you do now?]")
                 if st.button("Talk to suspects"):
                     st.session_state.current_stage = "interview"
                     st.rerun()
@@ -232,10 +232,10 @@ elif menu == "Level Mode":
                 available_suspects = story['suspects']
                 suspect = st.selectbox("Choose a suspect to talk to:", available_suspects)
                 if st.button("Interrogate Suspect"):
-                    st.write(f"Suspect: **{suspect}**")
-                    st.write(f"Details: {story['suspects'][suspect]}")
+                    st.write(f"white:[Suspect: **{suspect}**]")
+                    st.write(f"white:[Details: {story['suspects'][suspect]}]")
  
-                st.write("What will you do now?")       
+                st.write("white:[What will you do now?]")       
                 if st.button("Look for clues"):
                     st.session_state.current_stage = "clue_hunt"
                     st.rerun()
@@ -257,12 +257,12 @@ elif menu == "Level Mode":
                     st.session_state.playing = False
                     if guess.lower() == story["culprit"].lower():
                         st.success(f"Correct! The culprit was {story['culprit']}.")
-                        st.write(f"Explanation: {story['explanation']}")
+                        st.write(f"white:[Explanation: {story['explanation']}]")
                         save_progress_sql(st.session_state.username, progress + 1) 
                         
                     else:
                         st.error(f"Incorrect! You failed! The culprit was {story['culprit']}.")
-                        st.write(f"Explanation: {story['explanation']}")
+                        st.write(f"white:[Explanation: {story['explanation']}]")
 
                 if st.button("Play Again", disabled = st.session_state.playing, key='play_again'):
                     st.session_state.running = False
