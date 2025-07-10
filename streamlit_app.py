@@ -62,17 +62,18 @@ def generate_story(level, difflevel):
     num_red_herrings = 2 + (level // 5) 
 
     prompt = (
-        f"You are a mystery story generator. Create a random detective story for level {level} with:\n"
-        f"- A setting (e.g., mansion, park, office).\n"
-        f"- A description of what crime happened.\n"
-        f"- A victim and their backstory.\n"
-        f"- 4 suspects, each with motives and alibis.\n"
-        f"- {num_clues} key clues.\n"
-        f"- {num_red_herrings} red herrings.\n"
-        f"- One culprit. \n"
-        f"- An explanation of why the culprit committed the crime. \n"
-        f"- Make it a {difflevel}. \n"
-        "Provide the output in JSON format: \n"
+        f"You are a creative and unpredictable mystery story generator. "
+        f"Generate a unique detective story for level {level} with:\n"
+        f"- An imaginative and unusual setting (not just mansions or offices).\n"
+        f"- A crime that is not a simple murder; consider theft, sabotage, blackmail, or a mysterious disappearance.\n"
+        f"- A victim with a detailed, original backstory and personality.\n"
+        f"- 4 suspects, each with distinct motives, secrets, and alibis. Make their personalities and relationships unique.\n"
+        f"- {num_clues} key clues that are not obvious and require deduction.\n"
+        f"- {num_red_herrings} red herrings that are plausible but misleading.\n"
+        f"- One culprit, with a clever and unexpected motive.\n"
+        f"- An explanation that ties together the clues and reveals the culprit's reasoning.\n"
+        f"- Make the story {difflevel} difficulty.\n"
+        "Provide the output in JSON format:\n"
         "{\n"
         "    \"setting\": \"\",\n"
         "    \"description\": \"\",\n"
@@ -88,9 +89,10 @@ def generate_story(level, difflevel):
         "    \"culprit\": \"\",\n"
         "    \"explanation\": \"\"\n"
         "}\n"
-        "Only output the JSON part. \n"
-        "Only output the first and last name for the culprit, no prefixes such as Dr or Mr or Mrs or Ms. \n"
-        "Don't explain why they are red herrings. \n"
+        "Only output the JSON part. "
+        "Only output the first and last name for the culprit, no prefixes such as Dr or Mr or Mrs or Ms. "
+        "Don't explain why they are red herrings. "
+        "Avoid repeating settings, victim types, or crime methods from previous stories."
     )
 
     completion = client.chat.completions.create(
@@ -172,6 +174,15 @@ elif menu == "Level Mode":
 h1, h2, h3, h4, h5, h6,
 p, span, label, div[data-testid="stMarkdownContainer"] {
     color: white !important;
+}
+/* Restore button text and background color */
+button, .stButton button {
+    color: black !important;
+    background-color: white !important;
+}
+button:active, .stButton button:active {
+    color: white !important;
+    background-color: #d9534f !important;
 }
 </style>
 """
