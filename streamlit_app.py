@@ -175,14 +175,14 @@ h1, h2, h3, h4, h5, h6,
 p, span, label, div[data-testid="stMarkdownContainer"] {
     color: white !important;
 }
-/* Restore button text and background color */
+/* Make buttons red with white text by default, darker red on press */
 button, .stButton button {
-    color: black !important;
-    background-color: white !important;
+    color: white !important;
+    background-color: #d9534f !important;
 }
 button:active, .stButton button:active {
     color: white !important;
-    background-color: #d9534f !important;
+    background-color: #b52b27 !important;
 }
 </style>
 """
