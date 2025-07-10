@@ -48,6 +48,13 @@ def load_progress_sql(username):
     result = cursor.fetchone()
     return result[0] if result else None
 
+def pretty_print_item(item):
+    if isinstance(item, dict):
+        return ", ".join(f"{k}: {v}" for k, v in item.items())
+    elif isinstance(item, list):
+        return ", ".join(str(x) for x in item)
+    return str(item)
+
 # Story generation
 def generate_story(level, difflevel):
     client = Groq(api_key=st.secrets["groq_api_key"])
@@ -160,14 +167,14 @@ elif menu == "Level Mode":
     </style>
     """
     text_white_css = """
-    <style>
-    [data-testid="stAppViewContainer"] *, 
-    [data-testid="stVerticalBlock"] *,
-    .css-10trblm, .css-1d391kg, .css-1v0mbdj, .css-ffhzg2 {
-        color: white !important;
-    }
-    </style>
-    """
+<style>
+/* Only make text elements white, not buttons or inputs */
+h1, h2, h3, h4, h5, h6,
+p, span, label, div[data-testid="stMarkdownContainer"] {
+    color: white !important;
+}
+</style>
+"""
     st.markdown(bg_image, unsafe_allow_html=True)
     st.markdown(text_white_css, unsafe_allow_html=True)
 
@@ -203,7 +210,12 @@ elif menu == "Level Mode":
             if stage == "start":
                 st.subheader("You arrive at the scene of the crime.")
                 setting = story['setting'].lower()
-                st.write(f"You are at {setting}. {story['description']} The victim was {story['victim']}")
+                victim = story['victim']
+                if isinstance(victim, dict):
+                    st.write(f"You are at {setting}. {story['description']} The victim was **{victim.get('name', 'Unknown')}**.")
+                    st.write(f"Victim's backstory: {victim.get('backstory', '')}")
+                else:
+                    st.write(f"You are at {setting}. {story['description']} The victim was {victim}")
                 if st.button("Look for clues"):
                     st.session_state.current_stage = "clue_hunt"
                 if st.button("Talk to suspects"):
@@ -219,9 +231,9 @@ elif menu == "Level Mode":
                 choice = st.selectbox("Select a clue to investigate:", labels)
                 index = int(choice.split()[1]) - 1
                 if index < len(clues):
-                    st.write(f"**Revealed Clue:** {clues[index]}")
+                    st.write(f"**Revealed Clue:** {pretty_print_item(clues[index])}")
                 else:
-                    st.write(f"**Revealed Clue:** {herrings[index - len(clues)]}")
+                    st.write(f"**Revealed Clue:** {pretty_print_item(herrings[index - len(clues)])}")
                 if st.button("Talk to suspects"):
                     st.session_state.current_stage = "interview"
                     st.rerun()
@@ -234,7 +246,12 @@ elif menu == "Level Mode":
                 suspect = st.selectbox("Choose a suspect to talk to:", list(story['suspects'].keys()))
                 if st.button("Interrogate Suspect"):
                     st.write(f"Suspect: **{suspect}**")
-                    st.write(f"Details: {story['suspects'][suspect]}")
+                    details = story['suspects'][suspect]
+                    if isinstance(details, dict):
+                        for k, v in details.items():
+                            st.write(f"**{k.capitalize()}:** {v}")
+                    else:
+                        st.write(f"Details: {pretty_print_item(details)}")
                 if st.button("Look for clues"):
                     st.session_state.current_stage = "clue_hunt"
                     st.rerun()
@@ -254,11 +271,11 @@ elif menu == "Level Mode":
                     st.session_state.playing = False
                     if guess.lower() == story["culprit"].lower():
                         st.success(f"Correct! The culprit was {story['culprit']}.")
-                        st.write(f"Explanation: {story['explanation']}")
+                        st.write(f"Explanation: {pretty_print_item(story['explanation'])}")
                         save_progress_sql(st.session_state.username, progress + 1)
                     else:
                         st.error(f"Incorrect! The culprit was {story['culprit']}.")
-                        st.write(f"Explanation: {story['explanation']}")
+                        st.write(f"Explanation: {pretty_print_item(story['explanation'])}")
                 if st.button("Play Again", disabled=st.session_state.playing, key='play_again'):
                     st.session_state.running = False
                     st.session_state.playing = True
