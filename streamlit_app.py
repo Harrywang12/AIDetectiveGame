@@ -4,10 +4,9 @@ import json
 from hashlib import sha256
 from groq import Groq
 
-
+# Database setup
 conn = sqlite3.connect("users.db", check_same_thread=False)
 cursor = conn.cursor()
-
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS users (
     username TEXT PRIMARY KEY,
@@ -17,6 +16,7 @@ CREATE TABLE IF NOT EXISTS users (
 """)
 conn.commit()
 
+# Utility functions
 def hash_password(password):
     return sha256(password.encode()).hexdigest()
 
@@ -48,11 +48,11 @@ def load_progress_sql(username):
     result = cursor.fetchone()
     return result[0] if result else None
 
-client = Groq(api_key=st.secrets["groq_api_key"])
+# Story generation
 def generate_story(level, difflevel):
+    client = Groq(api_key=st.secrets["groq_api_key"])
     num_clues = max(3 - (level // 5), 1) 
     num_red_herrings = 2 + (level // 5) 
-
 
     prompt = (
         f"You are a mystery story generator. Create a random detective story for level {level} with:\n"
@@ -86,28 +86,21 @@ def generate_story(level, difflevel):
         "Don't explain why they are red herrings. \n"
     )
 
-
     completion = client.chat.completions.create(
         model="llama3-70b-8192",  
-        messages=[
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ],
+        messages=[{"role": "user", "content": prompt}],
         temperature=1,
         max_tokens=1024,
         top_p=1,
-        stream=False,
-        stop=None,
+        stream=False
     )
 
-    story = completion.choices[0].message.content
-    return story
+    return completion.choices[0].message.content
 
+# App UI
 st.title("ClueQuest AI")
 st.sidebar.header("Navigation")
-menu = st.sidebar.selectbox("Menu", [ "Login", "Signup", "Level Mode"])
+menu = st.sidebar.selectbox("Menu", ["Login", "Signup", "Level Mode"])
 
 if "username" not in st.session_state:
     st.session_state.username = None
@@ -148,6 +141,7 @@ elif menu == "Login":
         st.success(f"Logged in as {st.session_state.username}")
 
 elif menu == "Level Mode":
+    # Styling for background and white text
     bg_image = """
     <style>
     [data-testid="stAppViewContainer"] {
@@ -158,19 +152,30 @@ elif menu == "Level Mode":
         background-attachment: fixed;
     }
     [data-testid="stHeader"] {
-        background: rgba(0,0,0,0); /* Hides the header */
+        background: rgba(0,0,0,0);
     }
     [data-testid="stSidebar"] {
-        background: rgba(0,0,0,0.5); /* Makes the sidebar slightly transparent */
+        background: rgba(0,0,0,0.5);
+    }
+    </style>
+    """
+    text_white_css = """
+    <style>
+    [data-testid="stAppViewContainer"] *, 
+    [data-testid="stVerticalBlock"] *,
+    .css-10trblm, .css-1d391kg, .css-1v0mbdj, .css-ffhzg2 {
+        color: white !important;
     }
     </style>
     """
     st.markdown(bg_image, unsafe_allow_html=True)
+    st.markdown(text_white_css, unsafe_allow_html=True)
+
     if not st.session_state.username:
-        st.text(" Welcome to ClueQuest AI!")
+        st.text("Welcome to ClueQuest AI!")
         st.warning("You must log in to play the game.")
     else:
-        col1, col2, col3 = st.columns(3)
+        col1, _, _ = st.columns(3)
         with col1:
             if st.button("Log Out"):
                 st.session_state.username = None
@@ -182,43 +187,41 @@ elif menu == "Level Mode":
 
         st.subheader(f"Welcome, Detective {st.session_state.username}!")
         progress = load_progress_sql(st.session_state.username) or 0
-        st.write(f"white:[Current Level: {progress + 1}]")
+        st.write(f"Current Level: {progress + 1}")
 
         if st.session_state.story is None:
             if st.button("Solve Mystery"):
                 story_json = generate_story(progress + 1, "Medium")
-                story = json.loads(story_json)  
+                story = json.loads(story_json)
                 st.session_state.story = story
                 st.session_state.culprit = story["culprit"]
 
         if st.session_state.story:
             story = st.session_state.story
+            stage = st.session_state.current_stage
 
-            if st.session_state.current_stage == "start":
+            if stage == "start":
                 st.subheader("You arrive at the scene of the crime.")
                 setting = story['setting'].lower()
-                st.write(f"white:[You are at {setting}. {story['description']} The victim was {story['victim']}]")
-                st.write("white:[What would you like to do?]")
+                st.write(f"You are at {setting}. {story['description']} The victim was {story['victim']}")
                 if st.button("Look for clues"):
                     st.session_state.current_stage = "clue_hunt"
                 if st.button("Talk to suspects"):
                     st.session_state.current_stage = "interview"
                 st.rerun()
 
-            elif st.session_state.current_stage == "clue_hunt":
+            elif stage == "clue_hunt":
                 st.subheader("Looking for clues...")
-                clue_labels = [f"Clue {i+1}" for i in range(len(story["clues"]))]
-                clue_length = len(story["clues"]) 
-                herring_labels = [f"Clue {i+clue_length+1}" for i in range(len(story['red_herrings']))]
-                selected_clue_label = st.selectbox("Select a clue to investigate:", clue_labels + herring_labels)
-                if int(selected_clue_label.split()[1]) <= len(story["clues"]):
-                    selected_clue_index = clue_labels.index(selected_clue_label)
-                    st.write(f"white:[**Revealed Clue:** {story['clues'][selected_clue_index]}]") 
+                clues = story["clues"]
+                herrings = story["red_herrings"]
+                labels = [f"Clue {i+1}" for i in range(len(clues))] + \
+                         [f"Clue {i+1+len(clues)}" for i in range(len(herrings))]
+                choice = st.selectbox("Select a clue to investigate:", labels)
+                index = int(choice.split()[1]) - 1
+                if index < len(clues):
+                    st.write(f"**Revealed Clue:** {clues[index]}")
                 else:
-                    selected_clue_index = herring_labels.index(selected_clue_label) - clue_length + 1
-                    st.write(f"white:[**Revealed Clue:** {story['red_herrings'][selected_clue_index]}]") 
-
-                st.write("white:[What will you do now?]")
+                    st.write(f"**Revealed Clue:** {herrings[index - len(clues)]}")
                 if st.button("Talk to suspects"):
                     st.session_state.current_stage = "interview"
                     st.rerun()
@@ -226,16 +229,12 @@ elif menu == "Level Mode":
                     st.session_state.current_stage = "guess"
                     st.rerun()
 
-
-            elif st.session_state.current_stage == "interview":
+            elif stage == "interview":
                 st.subheader("Talking to suspects...")
-                available_suspects = story['suspects']
-                suspect = st.selectbox("Choose a suspect to talk to:", available_suspects)
+                suspect = st.selectbox("Choose a suspect to talk to:", list(story['suspects'].keys()))
                 if st.button("Interrogate Suspect"):
-                    st.write(f"white:[Suspect: **{suspect}**]")
-                    st.write(f"white:[Details: {story['suspects'][suspect]}]")
- 
-                st.write("white:[What will you do now?]")       
+                    st.write(f"Suspect: **{suspect}**")
+                    st.write(f"Details: {story['suspects'][suspect]}")
                 if st.button("Look for clues"):
                     st.session_state.current_stage = "clue_hunt"
                     st.rerun()
@@ -243,32 +242,27 @@ elif menu == "Level Mode":
                     st.session_state.current_stage = "guess"
                     st.rerun()
 
-                
-            elif st.session_state.current_stage == "guess":
-                button_text = "Submit Guess"
+            elif stage == "guess":
                 st.subheader("Who is the culprit?")
-                guess = st.selectbox("Accuse a suspect:", story['suspects'])
+                guess = st.selectbox("Accuse a suspect:", list(story['suspects'].keys()))
                 if "guessing" not in st.session_state:
                     st.session_state.guessing = False
                 if "playing" not in st.session_state:
                     st.session_state.playing = True
-                if st.button(button_text, disabled=st.session_state.guessing, key='guess'):  
+                if st.button("Submit Guess", disabled=st.session_state.guessing, key='guess'):
                     st.session_state.guessing = True
                     st.session_state.playing = False
                     if guess.lower() == story["culprit"].lower():
                         st.success(f"Correct! The culprit was {story['culprit']}.")
-                        st.write(f"white:[Explanation: {story['explanation']}]")
-                        save_progress_sql(st.session_state.username, progress + 1) 
-                        
+                        st.write(f"Explanation: {story['explanation']}")
+                        save_progress_sql(st.session_state.username, progress + 1)
                     else:
-                        st.error(f"Incorrect! You failed! The culprit was {story['culprit']}.")
-                        st.write(f"white:[Explanation: {story['explanation']}]")
-
-                if st.button("Play Again", disabled = st.session_state.playing, key='play_again'):
+                        st.error(f"Incorrect! The culprit was {story['culprit']}.")
+                        st.write(f"Explanation: {story['explanation']}")
+                if st.button("Play Again", disabled=st.session_state.playing, key='play_again'):
                     st.session_state.running = False
                     st.session_state.playing = True
                     st.session_state.guessing = False
                     st.session_state.current_stage = "start"
                     st.session_state.story = None
                     st.rerun()
-               
